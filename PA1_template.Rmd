@@ -1,20 +1,106 @@
-# Reproducible Research: Peer Assessment 1
+Coursera Reproducible Research Assignment 1 - 7/19/2014
+========================================================
 
+## Set Directory and Read in Data
 
-## Loading and preprocessing the data
-
-
+```{r reading in data}
+setwd("C:/Cousera/Course5_Reproducible Research")
+ActivityData <- read.csv("activity.csv")
+```
 
 ## What is mean total number of steps taken per day?
+## Make a histogram of the total number of steps taken each day
+## Calculate and report the mean and median total number of steps taken per day
 
+## Summarize to each day by summing steps per day - omitting NA and Histogram
 
+```{r histogram for Steps}
+StepByDay <- aggregate(steps ~ date, data=ActivityData, FUN=sum,na.action = na.omit)
+library (ggplot2)
+ggplot (StepByDay,aes(date)) 	+ geom_histogram(aes(weight=steps, fill =..count..),binwidth=.75) + xlab("Date") + theme(axis.text.x=element_text(angle = 90)) + ylab("Steps") + ggtitle("Total Steps Taken Per Day")
+```
+
+## Mean and Median per day
+
+```{r mean and median calc}
+MeanStepByDay <- aggregate(steps ~ date, data=ActivityData, FUN=mean,na.action = na.omit)
+MedStepByDay <- aggregate(steps ~ date, data=ActivityData, FUN=median,na.action = na.omit)
+
+MeanStepByDay
+MedStepByDay 
+```
 
 ## What is the average daily activity pattern?
 
+```{r average daily activity}
+ActivityByDay <- aggregate(steps~interval, data=ActivityData, FUN=mean,na.action = na.omit)
+ggplot (ActivityByDay ,aes(interval,steps)) + geom_line() + xlab("Interval") + theme(axis.text.x=element_text(angle = 90)) + ylab("Ave Steps") + ggtitle("Average Daily Activity")
+```
 
+## Which 5-minute interval, on average across all the days in the dataset, contains the maximum number of steps
 
-## Imputing missing values
+```{r max steps}
+MaxInterval <- max(ActivityByDay$interval)
+MaxRow <- which.max(ActivityByDay$steps)
+MaxStep <- ActivityByDay$steps[MaxRow]
 
+MaxStep
+MaxInterval
+```
 
+## Imputing missing values - Calculate and report the total number of missing values in the dataset
+Using Not complete cases
+```{r missing values}
+Missing <- sum(!complete.cases(ActivityData))
+Missing
+```
+
+## Create a new dataset that is equal to the original dataset but with the missing data filled in. 
+## My strategy is to replace the NA with a total average
+First, get the overall mean steps, then find the Row that has NA, replace the NA with the Mean
+```{r replace NA for Mean}
+MeanStep <- mean(ActivityByDay$steps)
+ActivityImpute <- ActivityData
+NARow <- is.na(ActivityData$steps)
+ActivityImpute[NARow,1] <-  MeanStep 
+```
+
+## Summarize to each day by summing steps per day - with new NA
+
+```{r new Summary stpe and histogram}
+StepByDayImp <- aggregate(steps ~ date, data=ActivityImpute, FUN=sum)
+library (ggplot2)
+ggplot (StepByDayImp ,aes(date)) + geom_histogram(aes(weight=steps, fill =..count..),binwidth=.75) + xlab("Date") + theme(axis.text.x=element_text(angle = 90)) + ylab("Steps") + ggtitle("Total Steps Taken Per Day")
+```
+
+# Mean and Median per day
+
+```{r mean and median for new no NA file}
+MeanStepByDayImp <- aggregate(steps ~ date, data=ActivityImpute, FUN=mean,na.action = na.omit)
+MedStepByDayImp <- aggregate(steps ~ date, data=ActivityImpute, FUN=median,na.action = na.omit)
+
+MeanStepByDayImp
+MedStepByDayImp 
+```
 
 ## Are there differences in activity patterns between weekdays and weekends?
+Create a new factor variable in the dataset with two levels – “weekday” and 
+“weekend” indicating whether a given date is a weekday or weekend day.
+
+## add the weekday into dataset
+Using Find and Replace - found on web hack - then column bind
+
+```{r weekend comparison}
+Wkend <- weekdays(as.Date(ActivityImpute$date), abbreviate = TRUE)
+Wkend <- sub("^Mon|^Tue|^Wed|^Thu|^Fri", "weekday", Wkend ,  perl = TRUE)
+Wkend <- sub("^Sat|^Sun", "weekend", Wkend ,  perl = TRUE)
+
+ActivityImputeW <- cbind(ActivityImpute,Wkend)
+```
+
+## What is the average daily activity pattern?
+Same graph as above but with facet - remember the + Wkend column for the added aggregation
+```{r facet line graph}
+ActivityImpByDay <- aggregate(steps~interval + Wkend, data=ActivityImpute , FUN=mean)
+ggplot (ActivityImpByDay ,aes(interval,steps)) + geom_line() + facet_grid(Wkend ~ .) + xlab("Interval") + theme(axis.text.x=element_text(angle = 90)) + ylab("Ave Steps") + ggtitle("Average Daily Activity") 
+```
